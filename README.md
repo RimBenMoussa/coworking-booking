@@ -1,6 +1,6 @@
-# Réservation beauté avec monitoring et alertes
+# Réservation de coworking avec monitoring et alertes
 
-Projet DevOps réalisé en binôme (ENSA Fès). Les clientes réservent une artiste (makeup ou nails) selon la prestation choisie et les créneaux réellement libres. L'application est déployée sur Kubernetes et surveillée en continu par Prometheus et Grafana, avec des alertes automatiques.
+Projet DevOps réalisé en binôme (ENSA Fès). Les membres d'un espace de coworking réservent une salle de réunion, un bureau privé ou un poste de travail selon la capacité, les équipements et les créneaux réellement libres. L'application est déployée sur Kubernetes et surveillée en continu par Prometheus et Grafana, avec des alertes automatiques.
 
 > **État du projet : semaine 1 (cadrage).** Le code applicatif n'existe pas encore. Les dossiers ci-dessous sont des emplacements prévus.
 
@@ -8,7 +8,7 @@ Projet DevOps réalisé en binôme (ENSA Fès). Les clientes réservent une arti
 
 Deux questions guident le projet :
 
-1. Comment permettre une réservation fiable, sans double réservation d'un même créneau ?
+1. Comment permettre une réservation fiable, sans double réservation d'un même espace sur un même créneau ?
 2. Comment savoir qu'une application en production est en bonne santé, sans attendre qu'une utilisatrice se plaigne ?
 
 ## Architecture cible

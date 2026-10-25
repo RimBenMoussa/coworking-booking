@@ -5,14 +5,14 @@
 ## 1. Créer le dépôt
 
 1. GitHub → **New repository**.
-2. Nom : `beauty-booking` (ou autre). Visibilité : **Private** tant que le cahier des charges n'est pas validé.
+2. Nom : `coworking-booking` (ou autre). Visibilité : **Private** tant que le cahier des charges n'est pas validé.
 3. Ne cochez ni README, ni .gitignore, ni licence : ils existent déjà en local.
 
 ## 2. Pousser le code local
 
 ```bash
-cd beauty-booking
-git remote add origin https://github.com/<utilisateur>/beauty-booking.git
+cd coworking-booking
+git remote add origin https://github.com/<utilisateur>/coworking-booking.git
 git push -u origin main
 ```
 
