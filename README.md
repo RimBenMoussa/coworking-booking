@@ -64,6 +64,7 @@ Voir [CONTRIBUTING.md](CONTRIBUTING.md) pour la stratégie de branches, les conv
 ## Équipe
 
 - Rim Ben Moussa
-- [Nom de la binôme – à compléter]
+- Khadija Alaoui Mrani
 
-Encadrant : [à compléter]
+Encadrant :Youssef Aounzo
+
