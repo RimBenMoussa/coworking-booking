@@ -1,0 +1,41 @@
+# --- .NET ---
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.log
+TestResults/
+publish/
+
+# --- Node / React ---
+node_modules/
+build/
+dist/
+.vite/
+npm-debug.log*
+coverage/
+
+# --- Secrets et configuration locale ---
+.env
+.env.*
+!.env.example
+appsettings.Development.json
+appsettings.Local.json
+*.pfx
+*.pem
+*.key
+secrets/
+kubeconfig*
+
+# --- Kubernetes / Helm ---
+*.tgz
+charts/*/charts/
+
+# --- Éditeurs et système ---
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+*.swp
