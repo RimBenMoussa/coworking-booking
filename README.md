@@ -36,6 +36,7 @@ backend/      API ASP.NET Core (à venir)
 frontend/     application React (à venir)
 k8s/          manifestes Kubernetes ou charts Helm (à venir)
 monitoring/   règles Prometheus, dashboards Grafana, config Alertmanager (à venir)
+db/           schéma PostgreSQL, données de démonstration, tests de contraintes, requêtes de référence
 docs/         cahier des charges, schémas, documentation
 .github/      workflows CI/CD et template de Pull Request
 ```
