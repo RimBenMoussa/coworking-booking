@@ -14,6 +14,10 @@ public static class BookingRules
     // Check-in accepté jusqu'à 30 minutes avant l'heure prévue.
     public static readonly TimeSpan EarlyCheckIn = TimeSpan.FromMinutes(30);
 
+    // Un client arrivé qui dépasse son heure de fin prévue est considéré présent encore 1 h
+    // (on ne sait pas quand il partira, mais il occupe sa place maintenant).
+    public static readonly TimeSpan OverstayMargin = TimeSpan.FromHours(1);
+
     // Seuil entre tarif court et tarif journée.
     public static readonly TimeSpan DayThreshold = TimeSpan.FromHours(6);
 

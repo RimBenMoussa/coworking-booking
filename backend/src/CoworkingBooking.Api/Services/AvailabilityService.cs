@@ -9,17 +9,17 @@ public record AvailabilityResult(bool IsAvailable, int RemainingPlaces, int Capa
 public class AvailabilityService(AppDbContext db, TimeProvider clock)
 {
     // Réservations actives (Confirmee ou Arrivee) qui chevauchent la plage [start, end).
-    // Une personne déjà arrivée occupe sa place au moins jusqu'à maintenant, même si elle dépasse l'heure prévue.
+    // Une personne déjà arrivée qui dépasse l'heure prévue occupe sa place jusqu'à maintenant + OverstayMargin.
     // Les réservations annulées, non présentées, terminées ou en attente de devis ne bloquent rien.
     public IQueryable<Booking> Overlapping(int spaceId, DateTimeOffset start, DateTimeOffset end, int? excludeBookingId = null)
     {
-        var now = clock.GetUtcNow();
+        var overstayUntil = clock.GetUtcNow() + BookingRules.OverstayMargin;
         return db.Bookings.Where(b =>
             b.SpaceId == spaceId
             && (b.Status == BookingStatus.Confirmee || b.Status == BookingStatus.Arrivee)
             && (excludeBookingId == null || b.Id != excludeBookingId)
             && b.PlannedArrival < end
-            && (b.PlannedEnd > start || (b.Status == BookingStatus.Arrivee && now > start)));
+            && (b.PlannedEnd > start || (b.Status == BookingStatus.Arrivee && overstayUntil > start)));
     }
 
     public async Task<AvailabilityResult> CheckAsync(Space space, DateTimeOffset start, DateTimeOffset end, int? excludeBookingId = null)
