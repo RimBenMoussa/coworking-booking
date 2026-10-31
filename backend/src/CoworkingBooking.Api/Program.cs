@@ -77,7 +77,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 builder.Services.AddAuthorization();
 
-// /health : le processus répond. /ready : la base PostgreSQL est joignable (pour Kubernetes en semaine 4).
+// /health : le processus répond (liveness). /ready : la base PostgreSQL est joignable (readiness Kubernetes).
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>("postgresql", tags: ["ready"]);
 
