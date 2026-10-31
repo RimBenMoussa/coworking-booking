@@ -1,0 +1,141 @@
+.header {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 60px;
+  gap: 16px;
+}
+
+.logo {
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--color-text);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logoMark {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--color-primary);
+}
+
+.menuButton {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.nav {
+  display: none;
+  flex-direction: column;
+  padding-bottom: 12px;
+}
+
+.navOpen {
+  display: flex;
+}
+
+.nav a {
+  padding: 10px 4px;
+  text-decoration: none;
+  color: var(--color-text);
+  font-weight: 500;
+  border-radius: 6px;
+}
+
+.nav a:global(.active) {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+@media (min-width: 860px) {
+  .menuButton {
+    display: none;
+  }
+
+  .nav {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+  }
+
+  .nav a {
+    padding: 8px 10px;
+  }
+
+  .wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.footer {
+  border-top: 1px solid var(--color-border);
+  padding: 24px 0;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.footer a {
+  color: var(--color-muted);
+}
+
+.adminHeader {
+  background: var(--color-text);
+  color: #fff;
+}
+
+.adminHeader .logo {
+  color: #fff;
+}
+
+.adminNav {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+}
+
+.adminNav a {
+  color: #e9e1d9;
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.adminNav a:global(.active) {
+  background: rgb(255 255 255 / 14%);
+  color: #fff;
+}
+
+.logout {
+  background: none;
+  border: 1px solid rgb(255 255 255 / 35%);
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font: inherit;
+  cursor: pointer;
+}

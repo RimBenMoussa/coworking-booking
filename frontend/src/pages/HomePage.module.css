@@ -1,0 +1,100 @@
+.hero {
+  background: linear-gradient(135deg, #3a2a20 0%, #6b3b22 60%, #b4532a 100%);
+  color: #fff;
+  padding: 48px 0 40px;
+}
+
+.hero h1 {
+  max-width: 18ch;
+}
+
+.hero p {
+  max-width: 52ch;
+  color: #f3e7dd;
+  font-size: 1.05rem;
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 20px 0 24px;
+  padding: 0;
+  list-style: none;
+}
+
+.pills li {
+  background: rgb(255 255 255 / 14%);
+  border: 1px solid rgb(255 255 255 / 25%);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.875rem;
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.heroActions :global(.btn-secondary) {
+  background: transparent;
+  color: #fff;
+  border-color: rgb(255 255 255 / 60%);
+}
+
+.section {
+  padding: 32px 0 8px;
+}
+
+.spaceCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.spaceHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.capacity {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.prices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.prices li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px dashed var(--color-border);
+  padding: 4px 0;
+}
+
+.prices strong {
+  color: var(--color-primary);
+}
+
+.subscription {
+  background: var(--color-primary-soft);
+  border-color: #ecc9b5;
+}
+
+.price {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--color-primary);
+}
