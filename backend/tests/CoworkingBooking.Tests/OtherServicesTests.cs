@@ -93,7 +93,7 @@ public class CatalogAndContactTests : IDisposable
 
     public void Dispose() => _env.Dispose();
 
-    private CatalogService Catalog => new(_env.Db, _env.Availability, NullLogger<CatalogService>.Instance);
+    private CatalogService Catalog => new(_env.Db, _env.Availability, _env.Clock, NullLogger<CatalogService>.Instance);
     private ContactService Contact => new(_env.Db, _env.Clock, NullLogger<ContactService>.Instance);
 
     [Fact]
@@ -103,6 +103,7 @@ public class CatalogAndContactTests : IDisposable
 
         Assert.Equal(8, response.Spaces.Count);
         Assert.Equal(800, response.SubscriptionPrice);
+        Assert.Equal(At("09:00"), response.LocalNow);
         Assert.Equal([25m, 40m, 40m], response.Spaces[0].Tariffs.Select(t => t.Amount));
         Assert.True(response.Spaces.Single(s => s.Name == "Salle Summit").OnQuote);
     }

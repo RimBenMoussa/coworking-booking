@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace CoworkingBooking.Api.Services;
 
 // Espaces, tarifs et disponibilités.
-public class CatalogService(AppDbContext db, AvailabilityService availability, ILogger<CatalogService> logger)
+public class CatalogService(AppDbContext db, AvailabilityService availability, TimeProvider clock, ILogger<CatalogService> logger)
 {
     public async Task<SpacesResponse> GetSpacesAsync()
     {
@@ -14,7 +14,7 @@ public class CatalogService(AppDbContext db, AvailabilityService availability, I
         var subscriptionPrice = await db.Tariffs
             .Where(t => t.SpaceId == null && t.Type == TariffType.AbonnementMensuel)
             .Select(t => t.Amount).FirstOrDefaultAsync();
-        return new SpacesResponse(spaces.Select(SpaceDto.From).ToList(), subscriptionPrice);
+        return new SpacesResponse(spaces.Select(SpaceDto.From).ToList(), subscriptionPrice, LocalTime.ToLocal(clock.GetUtcNow()));
     }
 
     public async Task<AvailabilityDto> GetAvailabilityAsync(int spaceId, DateOnly date, TimeOnly time, int? durationHours)

@@ -30,7 +30,9 @@ public record SpaceDto(
         s.Tariffs.OrderBy(t => t.Type).Select(TariffDto.From).ToList());
 }
 
-public record SpacesResponse(List<SpaceDto> Spaces, decimal SubscriptionPrice);
+// LocalNow : heure actuelle à Fès selon le serveur, pour que le frontend propose une heure par défaut
+// cohérente avec l'API, même si le navigateur a une base de fuseaux horaires différente.
+public record SpacesResponse(List<SpaceDto> Spaces, decimal SubscriptionPrice, DateTimeOffset LocalNow);
 
 public record SlotDto(DateTimeOffset Start, DateTimeOffset End);
 
