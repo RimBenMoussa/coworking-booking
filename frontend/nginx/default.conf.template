@@ -1,0 +1,37 @@
+# Nginx sert le frontend et relaie /api vers le backend.
+# Modèle : au démarrage, l'image Nginx remplace ${BACKEND_URL} et ${NGINX_LOCAL_RESOLVERS}
+# puis écrit le résultat dans /etc/nginx/conf.d/default.conf.
+server {
+    listen 8080;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Résolveur DNS lu dans /etc/resolv.conf du conteneur (Docker ou Kubernetes).
+    # Avec une variable dans proxy_pass, le nom du backend est résolu à chaque requête :
+    # Nginx démarre même si le backend n'est pas prêt, et suit un backend redémarré.
+    resolver ${NGINX_LOCAL_RESOLVERS} valid=10s ipv6=off;
+    set $backend_url ${BACKEND_URL};
+
+    # Appels à l'API : relayés au backend.
+    location /api/ {
+        proxy_pass $backend_url;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Fichiers générés par Vite (noms avec hash) : mis en cache longtemps.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Application monopage : toute route inconnue (/admin, /reservation/...) renvoie index.html,
+    # React Router affiche ensuite la bonne page.
+    location / {
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache";
+    }
+}

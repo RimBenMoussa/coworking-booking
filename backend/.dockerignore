@@ -1,0 +1,11 @@
+# Fichiers exclus du contexte de build Docker (plus rapide, et aucun secret dans l'image)
+**/bin/
+**/obj/
+**/TestResults/
+tests/
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/.env
+**/.env.*
+Dockerfile
+.dockerignore

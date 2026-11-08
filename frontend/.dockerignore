@@ -1,0 +1,9 @@
+# Fichiers exclus du contexte de build Docker
+node_modules/
+dist/
+.vite/
+coverage/
+.env
+.env.*
+Dockerfile
+.dockerignore
