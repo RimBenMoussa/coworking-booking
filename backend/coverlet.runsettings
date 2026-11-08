@@ -5,7 +5,7 @@
     <DataCollectors>
       <DataCollector friendlyName="XPlat code coverage">
         <Configuration>
-          <Format>cobertura</Format>
+          <Format>cobertura,opencover</Format>
           <Include>[CoworkingBooking.Api]*</Include>
           <!-- Code généré : migrations EF Core et expressions régulières générées -->
           <ExcludeByFile>**/Migrations/*.cs,**/obj/**/*.cs</ExcludeByFile>

@@ -1,9 +1,11 @@
 # Intégration continue : chaque push, sur n'importe quelle branche, est testé.
 #
-#   backend   (dotnet build + dotnet test)
-#   frontend  (npm ci + lint + build Vite)
+#   backend  ─┐
+#             ├─> docker (build + scan Trivy des 2 images) ─> push GHCR (main uniquement)
+#   frontend ─┘
+#   sonar      (analyse qualité SonarCloud, en parallèle)
 #
-# Si un test, le lint ou le build échoue, le pipeline est rouge
+# Si un test, le lint, le build ou le scan Trivy échoue, le pipeline est rouge
 # et la règle de protection de main empêche la fusion de la Pull Request.
 
 name: CI
@@ -18,7 +20,7 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-# Droits minimaux : le pipeline lit le dépôt, rien de plus.
+# Droits minimaux par défaut ; le job docker demande en plus l'écriture des packages (GHCR).
 permissions:
   contents: read
 
@@ -81,3 +83,106 @@ jobs:
 
       - name: Build (vérification TypeScript + Vite)
         run: npm run build
+
+  # ---------------------------------------------------------------- Qualité : SonarCloud
+  sonar:
+    name: Qualité (SonarCloud)
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION || 'rimbenmoussa' }}
+      SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY || 'RimBenMoussa_coworking-booking' }}
+    steps:
+      # Tant que le secret SONAR_TOKEN n'est pas créé, l'analyse est sautée (le pipeline reste vert).
+      - name: Vérifier la configuration SonarCloud
+        id: config
+        run: |
+          if [ -n "$SONAR_TOKEN" ]; then echo "ok=true" >> "$GITHUB_OUTPUT";
+          else echo "::warning::Secret SONAR_TOKEN absent : analyse SonarCloud sautée."; fi
+
+      - uses: actions/checkout@v7
+        if: steps.config.outputs.ok == 'true'
+        with:
+          fetch-depth: 0   # historique complet : Sonar distingue le "nouveau code"
+
+      - uses: actions/setup-dotnet@v6
+        if: steps.config.outputs.ok == 'true'
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/setup-java@v6   # le scanner Sonar tourne sur Java
+        if: steps.config.outputs.ok == 'true'
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Installer le scanner SonarCloud pour .NET
+        if: steps.config.outputs.ok == 'true'
+        run: dotnet tool install --global dotnet-sonarscanner
+
+      # begin -> build + tests -> end : le scanner observe la compilation C#,
+      # et scanAll ajoute le reste du dépôt (TypeScript du frontend, Dockerfiles, YAML).
+      - name: Analyse
+        if: steps.config.outputs.ok == 'true'
+        run: |
+          dotnet sonarscanner begin \
+            /k:"$SONAR_PROJECT_KEY" /o:"$SONAR_ORGANIZATION" \
+            /d:sonar.host.url="https://sonarcloud.io" \
+            /d:sonar.token="$SONAR_TOKEN" \
+            /d:sonar.scanner.scanAll=true \
+            /d:sonar.cs.opencover.reportsPaths="backend/TestResults/**/coverage.opencover.xml" \
+            /d:sonar.exclusions="**/Migrations/**,**/bin/**,**/obj/**,frontend/node_modules/**,frontend/dist/**" \
+            /d:sonar.coverage.exclusions="frontend/**,backend/tests/**,**/Migrations/**"
+          dotnet build backend/CoworkingBooking.slnx -c Release
+          dotnet test backend/CoworkingBooking.slnx --no-build -c Release \
+            --settings backend/coverlet.runsettings --collect:"XPlat Code Coverage" \
+            --results-directory backend/TestResults
+          dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
+
+  # ---------------------------------------------------------------- Images Docker
+  docker:
+    name: Image ${{ matrix.service }} (build + Trivy + GHCR)
+    needs: [backend, frontend]   # on ne construit les images que si le code est testé
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write            # pousser vers ghcr.io avec le GITHUB_TOKEN
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v7
+
+      # ghcr.io exige un nom en minuscules (RimBenMoussa -> rimbenmoussa).
+      - name: Nom de l'image
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "IMAGE=ghcr.io/${owner}/coworking-booking-${{ matrix.service }}" >> "$GITHUB_ENV"
+
+      - name: Build
+        run: docker build -t "$IMAGE:$GITHUB_SHA" ${{ matrix.service }}
+
+      # Échec du pipeline si l'image contient une faille CRITIQUE pour laquelle un correctif existe.
+      # Action épinglée par SHA de commit (v0.36.0) : les tags de trivy-action ont été
+      # détournés en mars 2026 (CVE-2026-33634), un SHA ne peut pas être modifié.
+      - name: Scan de sécurité (Trivy)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}:${{ github.sha }}
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
+      # Push seulement depuis main : les branches de travail sont testées mais ne publient rien.
+      - name: Connexion à GitHub Container Registry
+        if: github.ref == 'refs/heads/main'
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Push (tag = SHA du commit, + latest)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker tag "$IMAGE:$GITHUB_SHA" "$IMAGE:latest"
+          docker push "$IMAGE:$GITHUB_SHA"
+          docker push "$IMAGE:latest"
