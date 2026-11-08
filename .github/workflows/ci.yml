@@ -1,0 +1,83 @@
+# Intégration continue : chaque push, sur n'importe quelle branche, est testé.
+#
+#   backend   (dotnet build + dotnet test)
+#   frontend  (npm ci + lint + build Vite)
+#
+# Si un test, le lint ou le build échoue, le pipeline est rouge
+# et la règle de protection de main empêche la fusion de la Pull Request.
+
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+# Un nouveau push sur la même branche annule le pipeline précédent encore en cours.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Droits minimaux : le pipeline lit le dépôt, rien de plus.
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------- Backend
+  backend:
+    name: Backend (.NET build + tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore -c Release
+
+      - name: Tests + couverture
+        run: >
+          dotnet test --no-build -c Release
+          --settings coverlet.runsettings --collect:"XPlat Code Coverage"
+          --results-directory TestResults
+          --logger "trx;LogFileName=tests.trx"
+
+      - name: Publier les résultats de tests
+        if: always()   # même (surtout) si un test a échoué
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-test-results
+          path: backend/TestResults/
+
+  # ---------------------------------------------------------------- Frontend
+  frontend:
+    name: Frontend (lint + build Vite)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Installer les dépendances (versions exactes du package-lock)
+        run: npm ci
+
+      - name: Lint (oxlint)
+        run: npm run lint
+
+      - name: Build (vérification TypeScript + Vite)
+        run: npm run build
