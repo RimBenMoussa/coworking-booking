@@ -3,14 +3,15 @@
 Projet DevOps de binôme (ENSA Fès, Rim Ben Moussa et Khadija Alaoui Mrani, encadrant Youssef Aounzo) : une application de réservation pour un espace de coworking à Fès ouvert 24 h/24, inspirée de Chill & Work. Dépôt GitHub : RimBenMoussa/coworking-booking. Réponds en français. Le code doit rester simple : les deux étudiantes doivent pouvoir l'expliquer au prof.
 
 ## Où on en est
-- Le projet dure 6 semaines. Les semaines 1 (cadrage) et 2 (application de bout en bout) sont **terminées**.
-- Le travail de la semaine 2 a été livré par la PR #34 (`feat/semaine-2` vers `main`). Vérifie si elle est fusionnée avec `gh pr view 34`.
+- Le projet dure 6 semaines. Les semaines 1 (cadrage), 2 (application de bout en bout, PR #34) et 3 (Docker + CI) sont faites.
+- Semaine 3 livrée par 5 PR empilées, à fusionner dans l'ordre : #35 Dockerfiles → #36 docker-compose → #37 CI → #38 Sonar/Trivy/GHCR → docs. Vérifie leur état avec `gh pr list --state all`. Détails dans `docs/semaine-3.md`.
+- Semaine 4 : Kubernetes. Semaines 5-6 : monitoring, alertes, tests de charge, démo.
 - Il n'y a pas de branche `develop`. On suit GitHub Flow (voir CONTRIBUTING.md) :
   - branches `feat/`, `fix/`, `infra/`, `ci/`, `monitoring/`, `docs/` ;
   - commits `type: description` ;
   - PR vers `main` relue par l'autre membre, puis squash merge.
-- Les semaines suivantes portent sur Docker, CI GitHub Actions, Kubernetes, puis le monitoring (Prometheus, Grafana, Loki ; logs exploités en semaine 5), les alertes et les tests de charge. Le planning exact par semaine n'est pas fixé : demande-le.
-- Lis d'abord `README.md` et `docs/semaine-2.md`. Ils décrivent tout : règles métier, endpoints, tarification, tests, scénario de démo.
+- Le planning exact des semaines suivantes est dans le tracker de l'équipe (« Suivi DevOps Coworking ») : demande-le.
+- Lis d'abord `README.md`, `docs/semaine-2.md` (application) et `docs/semaine-3.md` (Docker, CI).
 
 ## Stack et structure
 - **backend/** :
@@ -21,8 +22,13 @@ Projet DevOps de binôme (ENSA Fès, Rim Ben Moussa et Khadija Alaoui Mrani, enc
 - **frontend/** :
   - React 19 + Vite 8 + TypeScript 7, React Router 7, Axios, CSS modules plus `index.css` global, lint `oxlint`.
   - Fichiers : `src/api.ts` (Axios, URL dans `VITE_API_URL`, jeton JWT en localStorage), `src/useApi.ts`, `src/auth.tsx` + `src/authContext.ts`, `src/format.ts`, `src/pages/`, `src/pages/admin/`.
-- **docs/** : `semaine-2.md`, captures dans `docs/captures/`, `architecture.png/.svg`.
-- **k8s/, monitoring/, .github/workflows/** : encore vides (`.gitkeep`).
+- **docs/** : `semaine-2.md`, `semaine-3.md`, captures dans `docs/captures/`, `architecture.png/.svg`.
+- **Docker** :
+  - `backend/Dockerfile` : sdk:10.0 → aspnet:10.0, utilisateur non-root `app`, port 8080, `tzdata` et `curl` (healthcheck).
+  - `frontend/Dockerfile` : node:24-alpine → nginx-unprivileged:1.30-alpine (uid 101, port 8080), `apk upgrade` pour Trivy. Build avec `VITE_API_URL` vide : le frontend appelle `/api` et Nginx relaie vers `BACKEND_URL` (défaut `http://backend:8080`, modèle `frontend/nginx/default.conf.template`). Sous Kubernetes, il faut le nom DNS complet du Service.
+  - `docker-compose.yml` : db → backend → frontend avec healthchecks ; `.env` à la racine (modèle `.env.example` : POSTGRES_*, JWT_KEY, ADMIN_*, ports), traduit en variables ASP.NET Core par compose.
+- **CI** (`.github/workflows/ci.yml`, à chaque push) : jobs backend et frontend → images (build + Trivy CRITICAL, action épinglée par SHA) → push `ghcr.io/rimbenmoussa/coworking-booking-{backend,frontend}:<sha>` sur main uniquement ; job SonarCloud sauté si le secret `SONAR_TOKEN` manque.
+- **k8s/, monitoring/** : encore vides (`.gitkeep`).
 
 ## Règles métier essentielles (déjà implémentées)
 - **8 espaces en seed avec tarifs en base** (table `tariffs`, modifiables par le gestionnaire) :
@@ -63,7 +69,7 @@ Projet DevOps de binôme (ENSA Fès, Rim Ben Moussa et Khadija Alaoui Mrani, enc
 - **Erreurs :** `BusinessException` (400, 401, 404, 409) transformée en ProblemDetails par `ProblemDetailsExceptionHandler`. Validation par DataAnnotations avec des messages en français.
 - **Configuration uniquement par la config ou des variables d'environnement :**
   - variables : `ConnectionStrings__Default`, `Jwt__Key` (32 caractères minimum, l'API refuse de démarrer sinon), `Admin__Email` / `Admin__Password` (compte gestionnaire créé ou mis à jour au démarrage), `Frontend__Url` (CORS, valeurs séparées par des virgules), `Database__MigrateOnStartup`, `Swagger__Enabled` ;
-  - modèle : voir `.env.example` à la racine.
+  - en Docker, ces variables sont fixées par `docker-compose.yml` à partir du `.env` racine.
 - **Aucun secret dans le dépôt.** `appsettings.Development.json` et `.env*` sont ignorés par git ; seuls `appsettings.Development.example.json`, `.env.example` et `frontend/.env.example` sont commités.
 - **Santé :** `/health` (liveness, sans vérification) et `/ready` (DbContext check, tag "ready").
 - **Logs ILogger** structurés sur les événements métier (création, check-in, check-out, non-présenté, devis, abonnement, tarifs) : ils serviront au monitoring.
@@ -71,7 +77,8 @@ Projet DevOps de binôme (ENSA Fès, Rim Ben Moussa et Khadija Alaoui Mrani, enc
 ## Lancer le projet en local
 - PostgreSQL : `docker start coworking-pg`. Si le conteneur n'existe pas, voir le README (`postgres:17`, utilisateur et base `coworking`, mot de passe `coworking_dev`, port 5432).
 - API : `cd backend && dotnet ef database update -p src/CoworkingBooking.Api && dotnet run --project src/CoworkingBooking.Api --launch-profile http`. Elle écoute sur http://localhost:5080 (Swagger sur /swagger).
-- Frontend : `cd frontend && npm run dev`, sur http://localhost:5173. `VITE_API_URL` est défini dans `.env.development.local`, copié depuis `.env.example`.
+- Frontend : `cd frontend && npm run dev`, sur http://localhost:5173. `VITE_API_URL` est défini dans `.env.development.local`, copié depuis `frontend/.env.example`.
+- Tout en Docker : `cp .env.example .env` puis `docker compose up --build` (http://localhost:8080). Sur ce PC, le port 8080 est déjà pris par un autre projet : utiliser `FRONTEND_PORT=8088` dans `.env`.
 - Gestionnaire de développement : `gestionnaire@coworking.local` / `Gestion2026!`.
 - Vérifications avant chaque PR : `dotnet test` (107 tests), `npm run build` et `npm run lint` (0 avertissement attendu).
 - **Piège Windows :** si une API ou un Vite tourne encore, `dotnet build` échoue (exe verrouillé) ou Vite ne trouve pas son port. Arrête le processus avant de relancer.

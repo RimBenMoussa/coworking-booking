@@ -2,7 +2,7 @@
 
 Projet DevOps réalisé en binôme (ENSA Fès). Une application de réservation pour un espace de coworking ouvert 24 h/24, inspirée du fonctionnement d'un coworking de Fès : Open Space, terrasse, phone box et salles de réunion. Les clients réservent sans compte et paient au départ selon le temps passé ; le gestionnaire suit l'occupation en direct, fait les check-in / check-out et traite les devis. L'application sera déployée sur Kubernetes et surveillée par Prometheus et Grafana, avec des alertes automatiques.
 
-> **État du projet : semaine 2 (application utilisable de bout en bout).** API ASP.NET Core, frontend React et base PostgreSQL fonctionnent en local. Docker, CI/CD, Kubernetes et le monitoring arrivent les semaines suivantes. Détails : [docs/semaine-2.md](docs/semaine-2.md).
+> **État du projet : semaine 3 (Docker et intégration continue).** L'application complète démarre avec `docker compose up`. Chaque push est testé par GitHub Actions (tests, lint, SonarCloud, scan Trivy), et les images de `main` sont publiées sur GitHub Container Registry. Kubernetes et le monitoring arrivent les semaines suivantes. Détails : [docs/semaine-2.md](docs/semaine-2.md) (application) et [docs/semaine-3.md](docs/semaine-3.md) (Docker, CI).
 
 ## Problématique
 
@@ -25,9 +25,10 @@ Version vectorielle : [docs/architecture.svg](docs/architecture.svg)
 | Backend | ASP.NET Core 10 (Web API, Controllers, JWT), Swagger |
 | Base de données | PostgreSQL 17, Entity Framework Core 10 + Npgsql (migrations) |
 | Tests | xUnit, EF Core InMemory, FakeTimeProvider, Coverlet |
-| Conteneurs et orchestration | Docker, Kubernetes (minikube ou kind en local), Helm *(à venir)* |
+| Conteneurs | Docker multi-stage (images non-root), docker compose, Nginx |
+| CI | GitHub Actions, SonarCloud, Trivy, GitHub Container Registry |
+| Orchestration | Kubernetes (minikube ou kind en local), Helm *(à venir)* |
 | Monitoring | Prometheus, Grafana, Alertmanager, Loki *(à venir)* |
-| CI/CD | GitHub Actions *(à venir)* |
 
 ## Structure du dépôt
 
@@ -36,14 +37,33 @@ backend/
   CoworkingBooking.slnx              solution .NET (nouveau format .slnx du SDK 10)
   src/CoworkingBooking.Api/          API : Controllers, Services, Data (DbContext, seed, migrations), Models, DTOs
   tests/CoworkingBooking.Tests/      tests xUnit des services
+  Dockerfile                         image de l'API (sdk -> aspnet)
 frontend/                            application React (Vite)
+  Dockerfile, nginx/                 image du frontend (Vite -> Nginx qui relaie /api)
+docker-compose.yml                   PostgreSQL + API + frontend
 docs/                                cahier des charges, schémas, documentation par semaine
 k8s/                                 manifestes Kubernetes ou charts Helm (à venir)
 monitoring/                          règles Prometheus, dashboards Grafana (à venir)
-.github/                             workflows CI/CD et template de Pull Request
+.github/workflows/ci.yml             pipeline CI (tests, lint, Sonar, Trivy, push GHCR)
 ```
 
-## Démarrage en local
+## Démarrage avec Docker (le plus simple)
+
+Seul Docker est nécessaire.
+
+```bash
+cp .env.example .env      # remplir POSTGRES_PASSWORD, JWT_KEY (openssl rand -hex 32), ADMIN_EMAIL, ADMIN_PASSWORD
+docker compose up --build
+```
+
+- Application : http://localhost:8080 (port modifiable avec `FRONTEND_PORT` dans `.env`)
+- Gestionnaire : identifiants `ADMIN_EMAIL` / `ADMIN_PASSWORD` du `.env`
+- Swagger : http://localhost:5080/swagger, si `SWAGGER_ENABLED=true`
+- `docker compose ps` affiche les 3 services `healthy`. `docker compose down -v` efface aussi la base.
+
+Les images publiées par la CI sont sur `ghcr.io/rimbenmoussa/coworking-booking-backend` et `ghcr.io/rimbenmoussa/coworking-booking-frontend`, taggées par SHA de commit. Détails : [docs/semaine-3.md](docs/semaine-3.md).
+
+## Démarrage en local (développement, sans Docker pour l'API)
 
 ### Prérequis
 
@@ -72,7 +92,7 @@ cp appsettings.Development.example.json appsettings.Development.json
 # Remplacer Jwt:Key par une valeur aléatoire, par exemple : openssl rand -hex 32
 ```
 
-`appsettings.Development.json` est ignoré par git : il ne doit jamais être commité. En dehors du développement, la configuration passe par des variables d'environnement (voir [.env.example](.env.example)) : `ConnectionStrings__Default`, `Jwt__Key`, `Admin__Email`, `Admin__Password`, `Frontend__Url`.
+`appsettings.Development.json` est ignoré par git : il ne doit jamais être commité. En dehors du développement, la configuration passe par des variables d'environnement : `ConnectionStrings__Default`, `Jwt__Key`, `Admin__Email`, `Admin__Password`, `Frontend__Url` (voir la section `backend` de [docker-compose.yml](docker-compose.yml)).
 
 ```bash
 cd backend
@@ -122,7 +142,8 @@ npm run lint
 |---|---|
 | S1 | Cadrage, organisation, dépôt, architecture, modèle de données |
 | S2 | Application de bout en bout : API, frontend, PostgreSQL, tests ✅ |
-| S3 – S6 | Conteneurisation, CI/CD, Kubernetes, monitoring et alertes, tests de charge, démonstration |
+| S3 | Docker, docker compose, CI GitHub Actions, SonarCloud, Trivy, GHCR ✅ |
+| S4 – S6 | Kubernetes, monitoring et alertes, tests de charge, démonstration |
 
 ## Contribuer
 
